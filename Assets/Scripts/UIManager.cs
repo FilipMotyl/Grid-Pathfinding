@@ -35,7 +35,6 @@ public class UIManager : MonoBehaviour
         }
         else
         {
-            Debug.Log("0");
             tileMap.Height = 0;
         }
     }
@@ -48,7 +47,6 @@ public class UIManager : MonoBehaviour
         }
         else
         {
-            Debug.Log("0");
             tileMap.Width = 0;
         }
         

@@ -8,6 +8,7 @@ public class JumpPointSearch : MonoBehaviour
 {
     [SerializeField] private TileMap tileMap;
 
+
     public List<Tile> FindPath(Tile startTile, Tile targetTile)
     {
         Node startNode = startTile.Node;
@@ -33,9 +34,9 @@ public class JumpPointSearch : MonoBehaviour
         return new List<Tile>();
     }
 
-    void IdentifySuccessors(Node node, Node targetNode, MinHeapPriorityQueue<Node> openSet, HashSet<Node> closedSet)
+    private void IdentifySuccessors(Node node, Node targetNode, MinHeapPriorityQueue<Node> openSet, HashSet<Node> closedSet)
     {
-        foreach (Node neighbor in PrunedNeighbors(node))
+        foreach (Node neighbor in node.Neighbors)
         {
             Node jumpPoint = Jump(neighbor, node, targetNode);
             if (jumpPoint != null && !closedSet.Contains(jumpPoint))
@@ -60,7 +61,7 @@ public class JumpPointSearch : MonoBehaviour
         }
     }
 
-    Node Jump(Node currentNode, Node parent, Node targetNode)
+    private Node Jump(Node currentNode, Node parent, Node targetNode)
     {
         if (currentNode == null || !currentNode.IsWalkable)
             return null;
@@ -68,48 +69,40 @@ public class JumpPointSearch : MonoBehaviour
         if (currentNode == targetNode)
             return currentNode;
 
-        if (HasForcedNeighbor(currentNode, parent))
-            return currentNode;
-
         int dx = currentNode.Tile.X - parent.Tile.X;
         int dz = currentNode.Tile.Z - parent.Tile.Z;
 
-        if (dx != 0)
+        if (HasForcedNeighbor(currentNode, dx, dz))
         {
-            if (IsWalkable(currentNode.Tile.X + dx, currentNode.Tile.Z) && !IsWalkable(currentNode.Tile.X + dx, currentNode.Tile.Z + 1) ||
-                IsWalkable(currentNode.Tile.X + dx, currentNode.Tile.Z) && !IsWalkable(currentNode.Tile.X + dx, currentNode.Tile.Z - 1))
-            {
-                return currentNode;
-            }
-        }
-        else if (dz != 0)
-        {
-            if (IsWalkable(currentNode.Tile.X, currentNode.Tile.Z + dz) && !IsWalkable(currentNode.Tile.X + 1, currentNode.Tile.Z + dz) ||
-                IsWalkable(currentNode.Tile.X, currentNode.Tile.Z + dz) && !IsWalkable(currentNode.Tile.X - 1, currentNode.Tile.Z + dz))
-            {
-                return currentNode;
-            }
+            return currentNode;
         }
 
-        if (dx != 0 && dz == 0)
+        if (dx != 0)
         {
             if (Jump(tileMap.GetTile(currentNode.Tile.X + dx, currentNode.Tile.Z)?.Node, currentNode, targetNode) != null)
                 return currentNode;
+
+            if (IsWalkable(currentNode.Tile.X, currentNode.Tile.Z + 1) && !IsWalkable(currentNode.Tile.X - dx, currentNode.Tile.Z + 1))
+                return currentNode;
+            if (IsWalkable(currentNode.Tile.X, currentNode.Tile.Z - 1) && !IsWalkable(currentNode.Tile.X - dx, currentNode.Tile.Z - 1))
+                return currentNode;
         }
-        else if (dz != 0 && dx == 0)
+        else if (dz != 0)
         {
             if (Jump(tileMap.GetTile(currentNode.Tile.X, currentNode.Tile.Z + dz)?.Node, currentNode, targetNode) != null)
+                return currentNode;
+
+            if (IsWalkable(currentNode.Tile.X + 1, currentNode.Tile.Z) && !IsWalkable(currentNode.Tile.X + 1, currentNode.Tile.Z - dz))
+                return currentNode;
+            if (IsWalkable(currentNode.Tile.X - 1, currentNode.Tile.Z) && !IsWalkable(currentNode.Tile.X - 1, currentNode.Tile.Z - dz))
                 return currentNode;
         }
 
         return null;
     }
 
-    bool HasForcedNeighbor(Node currentNode, Node parent)
+    private bool HasForcedNeighbor(Node currentNode, int dx, int dz)
     {
-        int dx = currentNode.Tile.X - parent.Tile.X;
-        int dz = currentNode.Tile.Z - parent.Tile.Z;
-
         if (dx != 0)
         {
             if (IsWalkable(currentNode.Tile.X, currentNode.Tile.Z + 1) && !IsWalkable(currentNode.Tile.X - dx, currentNode.Tile.Z + 1))
@@ -128,20 +121,20 @@ public class JumpPointSearch : MonoBehaviour
         return false;
     }
 
-    bool IsWalkable(int x, int z)
+    private bool IsWalkable(int x, int z)
     {
         Tile tile = tileMap.GetTile(x, z);
         return tile != null && tile.Node.IsWalkable;
     }
 
-    int GetDistance(Node nodeA, Node nodeB)
+    private int GetDistance(Node nodeA, Node nodeB)
     {
         int dstX = Mathf.Abs(nodeA.Tile.X - nodeB.Tile.X);
         int dstZ = Mathf.Abs(nodeA.Tile.Z - nodeB.Tile.Z);
         return dstX + dstZ;
     }
 
-    List<Tile> RetracePath(Node startNode, Node endNode)
+    private List<Tile> RetracePath(Node startNode, Node endNode)
     {
         List<Tile> path = new List<Tile>();
         Node currentNode = endNode;
@@ -153,54 +146,5 @@ public class JumpPointSearch : MonoBehaviour
         }
         path.Reverse();
         return path;
-    }
-
-    List<Node> PrunedNeighbors(Node node)
-    {
-        List<Node> pruned = new List<Node>();
-        Node parent = node.Parent;
-
-        if (parent != null)
-        {
-            int dx = Mathf.Clamp(node.Tile.X - parent.Tile.X, -1, 1);
-            int dz = Mathf.Clamp(node.Tile.Z - parent.Tile.Z, -1, 1);
-
-            if (dx != 0)
-            {
-                if (IsWalkable(node.Tile.X + dx, node.Tile.Z))
-                {
-                    pruned.Add(tileMap.GetTile(node.Tile.X + dx, node.Tile.Z).Node);
-                }
-                if (IsWalkable(node.Tile.X, node.Tile.Z + 1))
-                {
-                    pruned.Add(tileMap.GetTile(node.Tile.X, node.Tile.Z + 1).Node);
-                }
-                if (IsWalkable(node.Tile.X, node.Tile.Z - 1))
-                {
-                    pruned.Add(tileMap.GetTile(node.Tile.X, node.Tile.Z - 1).Node);
-                }
-            }
-            else if (dz != 0)
-            {
-                if (IsWalkable(node.Tile.X, node.Tile.Z + dz))
-                {
-                    pruned.Add(tileMap.GetTile(node.Tile.X, node.Tile.Z + dz).Node);
-                }
-                if (IsWalkable(node.Tile.X + 1, node.Tile.Z))
-                {
-                    pruned.Add(tileMap.GetTile(node.Tile.X + 1, node.Tile.Z).Node);
-                }
-                if (IsWalkable(node.Tile.X - 1, node.Tile.Z))
-                {
-                    pruned.Add(tileMap.GetTile(node.Tile.X - 1, node.Tile.Z).Node);
-                }
-            }
-        }
-        else
-        {
-            pruned = node.Neighbors;
-        }
-
-        return pruned;
     }
 }

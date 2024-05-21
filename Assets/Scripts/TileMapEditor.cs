@@ -59,15 +59,8 @@ public class TileMapEditor : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, tileLayer))
         {
             tileMap.GetXZ(hit.point, out int x, out int z);
-            Debug.Log($"Clicked on Tile at position: {x}, {z}");
-
 
             Tile clickedTile = hit.collider.GetComponent<Tile>();
-
-            foreach (Node n in clickedTile.Node.Neighbors)
-            {
-                Debug.Log(n.Tile.name);
-            }
 
             if (clickedTile != null)
             {
@@ -108,6 +101,7 @@ public class TileMapEditor : MonoBehaviour
         startTile = clickedTile;
         startTile.ChangeText("S");
     }
+
     private void PlaceEnd(Tile clickedTile)
     {
         if (endTile != null)
@@ -127,6 +121,7 @@ public class TileMapEditor : MonoBehaviour
         endTile = clickedTile;
         endTile.ChangeText("E");
     }
+
     private void PlaceOrRemoveObstacle(Tile clickedTile)
     { 
         if (startTile && clickedTile == startTile)
